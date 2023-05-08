@@ -1,0 +1,11 @@
+Flask==2.3.2
+youtube-transcript-api==0.6.0
+streamlit
+openai==0.27.6
+langchain~=0.0.161
+urllib3<2.0
+tiktoken
+faiss-cpu
+transformers
+python-dotenv
+sentencepiece
