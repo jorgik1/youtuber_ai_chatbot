@@ -1,7 +1,8 @@
-youtube-transcript-api
 streamlit
 openai
 langchain
 tiktoken
 faiss-cpu
 python-dotenv
+streamlit_elements
+youtube-transcript-api
