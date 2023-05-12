@@ -10,7 +10,9 @@ def index():
             video_url = st.session_state.get("video_url")
             media.Player(url=video_url, controls=True)
 
-    st.title("YoutuberGPT")
+    st.set_page_config(page_title="YoutuberGPT", page_icon="🤖", layout="wide")
+    st.header("🤖YoutuberGPT")
+
 
     sidebar()
     video_url = st.text_input("YouTube Video Url:", on_change=put_media_player())
