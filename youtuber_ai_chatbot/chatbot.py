@@ -8,12 +8,17 @@ from dotenv import find_dotenv, load_dotenv
 from prompts import CHAT_PROMPT
 from openai.error import OpenAIError
 import streamlit as st
+import os
 
+st.write(
+    "Has environment variables been set:",
+    os.environ["OPENAI_API_KEY"] == st.secrets["OPENAI_API_KEY"],
+)
 
 class YouTubeChatbot:
     def __init__(self):
         load_dotenv(find_dotenv())
-        self.embeddings = OpenAIEmbeddings()
+        self.embeddings = OpenAIEmbeddings(openai_api_key=os.environ["OPENAI_API_KEY"])
 
     @st.cache_data
     def create_db_from_youtube_video_url(_self, video_url):
