@@ -1,23 +1,20 @@
-from config import OPENAI_API_KEY
-from chatbot import create_youtuber_chatbot
-from flask import Flask, render_template, request
-
-app = Flask(__name__)
+from chatbot import YouTubeChatbot
+import streamlit as st
+import textwrap
 
 
-@app.route("/", methods=["GET", "POST"])
+st.set_page_config(page_title="Youtuber Chatbot", page_icon="🤖", layout="wide", initial_sidebar_state="expanded")
+
 def index():
-    if request.method == "POST":
-        video_id = request.form.get("video_id")
-        youtuber_name = request.form.get("youtuber_name")
-        question = request.form.get("question")
+    st.title("Youtuber AI Chatbot")
 
-        chatbot = create_youtuber_chatbot(video_id, youtuber_name, OPENAI_API_KEY)
-        answer = chatbot.ask(question)
+    video_url = st.text_input("YouTube Video Url:")
+    question = st.text_area("Question:")
 
-        return render_template("index.html", answer=answer)
-    return render_template("index.html")
-
-
-if __name__ == "__main__":
-    app.run(debug=True)
+    if st.button("Ask any question relate to the video"):
+        chatbot = YouTubeChatbot()
+        db = chatbot.create_db_from_youtube_video_url(video_url)
+        answer = chatbot.get_response_from_query(db, question)
+        st.subheader("Answer:")
+        st.write(textwrap.fill(answer, width=50))
+index()

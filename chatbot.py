@@ -1,84 +1,68 @@
-import pickle
-
-from langchain.text_splitter import CharacterTextSplitter
-from youtube_transcript_api import YouTubeTranscriptApi
+from langchain.document_loaders import YoutubeLoader
+from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.embeddings.openai import OpenAIEmbeddings
-from langchain.vectorstores.faiss import FAISS
-from langchain.llms import OpenAI
-from langchain.chains import ChatVectorDBChain
-from langchain.prompts import PromptTemplate
-from transformers import LongformerTokenizer
+from langchain.vectorstores import FAISS
+from langchain.chat_models import ChatOpenAI
+from langchain.chains import LLMChain
+from dotenv import find_dotenv, load_dotenv
+from langchain.prompts.chat import (
+    ChatPromptTemplate,
+    SystemMessagePromptTemplate,
+    HumanMessagePromptTemplate,
+)
 
+class YouTubeChatbot:
+    def __init__(self):
+        load_dotenv(find_dotenv())
+        self.embeddings = OpenAIEmbeddings()
 
-class YoutuberAIChatbot:
-    def __init__(self, qa, youtuber_name):
-        self.qa = qa
-        self.youtuber_name = youtuber_name
-        self.tokenizer = LongformerTokenizer.from_pretrained('allenai/longformer-base-4096')
+    def create_db_from_youtube_video_url(self, video_url):
+        loader = YoutubeLoader.from_youtube_url(video_url)
+        transcript = loader.load()
 
-    def _truncate_chat_history(self, chat_history, max_tokens):
-        if len(chat_history) == 0:
-            return []
+        text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
+        docs = text_splitter.split_documents(transcript)
 
-        total_tokens = sum([len(self.tokenizer.encode(dialogue_turn)) for dialogue_turn in chat_history])
-        if total_tokens <= max_tokens:
-            return chat_history
+        db = FAISS.from_documents(docs, self.embeddings)
+        return db
 
-        truncated_chat_history = []
-        remaining_tokens = max_tokens
+    def get_response_from_query(self, db, query, k=4):
+        """
+        gpt-3.5-turbo can handle up to 4097 tokens. Setting the chunksize to 1000 and k to 4 maximizes
+        the number of tokens to analyze.
+        """
 
-        for dialogue_turn in reversed(chat_history):
-            dialogue_tokens = self.tokenizer.encode(dialogue_turn)
-            if len(dialogue_tokens) <= remaining_tokens:
-                truncated_chat_history.insert(0, dialogue_turn)
-                remaining_tokens -= len(dialogue_tokens)
-            else:
-                break
+        docs = db.similarity_search(query, k=k)
+        docs_page_content = " ".join([d.page_content for d in docs])
 
-        return truncated_chat_history
+        chat = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0.2)
 
-    def ask(self, question, youtuber_name=None, chat_history=None):
-        if chat_history is None:
-            chat_history = []
+        # Template to use for the system message prompt
+        template = """
+            You are a helpful assistant that that can answer questions about youtube videos
+            based on the video's transcript: {docs}
 
-        if len(chat_history) > 0:
-            max_tokens = 4096 - len(self.tokenizer.encode(question)) - sum(
-                [len(self.tokenizer.encode(dialogue_turn)) for dialogue_turn in chat_history])
-        else:
-            max_tokens = 2000
+            Only use the factual information from the transcript to answer the question.
 
-        truncated_chat_history = self._truncate_chat_history(chat_history, max_tokens)
+            If you feel like you don't have enough information to answer the question, say "I don't know".
 
-        result = self.qa({"name": youtuber_name, "question": question, "chat_history": truncated_chat_history},
-                         return_only_outputs=True)
-        return result["answer"]
+            Your answers should be verbose and detailed.
+            """
 
+        system_message_prompt = SystemMessagePromptTemplate.from_template(template)
 
-def create_youtuber_chatbot(video_id, youtuber_name, openai_api_key):
-    t = YouTubeTranscriptApi.get_transcript(video_id)
-    final_string = " ".join(item["text"] for item in t)
+        # Human question prompt
+        human_template = "Answer the following question: {question}"
+        human_message_prompt = HumanMessagePromptTemplate.from_template(human_template)
 
-    text_splitter = CharacterTextSplitter()
-    chunks = text_splitter.split_text(final_string)
+        chat_prompt = ChatPromptTemplate.from_messages(
+            [system_message_prompt, human_message_prompt]
+        )
 
-    vector_store = FAISS.from_texts(chunks, OpenAIEmbeddings(openai_api_key=openai_api_key))
-    with open("vectors-store.pkl", "wb") as f:
-        pickle.dump(vector_store, f)
+        chain = LLMChain(llm=chat, prompt=chat_prompt)
 
-    qa_prompt_template = """You are an AI version of the youtuber {name} in video ID {video_id}.
-    You are given the following extracted parts of a document and a question. Provide a conversational answer.
-    Question: {question}
-    =========
-    {context_start}
-    {context_end}
-    =========
-    Answer:"""
+        response = chain.run(question=query, docs=docs_page_content)
+        response = response.replace("\n", "")
+        return response
 
-    qa_prompt = PromptTemplate(template=qa_prompt_template,
-                               input_variables=["name", "video_id", "question", "context_start", "context_end"])
-
-    qa = ChatVectorDBChain.from_llm(OpenAI(temperature=0, openai_api_key=openai_api_key),
-                                    vectorstore=vector_store, condense_question_prompt=qa_prompt)
-
-    return YoutuberAIChatbot(qa, youtuber_name)
 
