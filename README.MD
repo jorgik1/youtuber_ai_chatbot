@@ -11,3 +11,8 @@ cd youtuber_ai_chatbot
 ```
 pip install -r requirements.txt
 ```
+
+## Run the Chatbot
+```
+streamlit run main.py
+```
