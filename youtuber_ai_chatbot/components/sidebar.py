@@ -3,8 +3,14 @@ from components.faq import faq
 
 def sidebar():
     with st.sidebar:
-        st.markdown("YoutuberGPT")
+        st.markdown("# 🤖YoutuberGPT")
         st.markdown("---")
+        st.markdown("# How to use?")
+        st.markdown(
+            "- 1. Input the URL of the video you are interested in"
+            "- 2. YouTuberGPT will use its advanced semantic search"
+            "capabilities to analyze the video and generate accurate and helpful answer to your questions ")
+
         st.markdown("# About")
         st.markdown(
             "YouTuberGPT allows you to ask questions about YouTube videos. "
