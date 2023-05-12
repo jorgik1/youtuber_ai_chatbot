@@ -10,10 +10,9 @@ from openai.error import OpenAIError
 import streamlit as st
 import os
 
-st.write(
-    "Has environment variables been set:",
-    os.environ["OPENAI_API_KEY"] == st.secrets["OPENAI_API_KEY"],
-)
+if (st.secrets.openai_api_key is not None):
+    os.environ.setdefault("OPENAI_API_KEY", st.secrets.openai_api_key),
+
 
 class YouTubeChatbot:
     def __init__(self):

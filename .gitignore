@@ -2,7 +2,7 @@
 data/local_data/
 
 # Secrets
-.streamlit/secrets.toml
+youtuber_ai_chatbot/.streamlit/secrets.toml
 
 # VSCode
 .vscode/
