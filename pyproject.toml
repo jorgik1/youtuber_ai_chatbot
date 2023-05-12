@@ -11,14 +11,11 @@ packages = [{include = "youtuber_ai_chatbot"}]
 python = "^3.10"
 streamlit = "^1.17.0"
 langchain = "0.0.79"
-cohere = "^3.2.1"
 faiss-cpu = "^1.7.3"
 openai = "^0.26.2"
-docx2txt = "^0.8"
-pillow = "^9.4.0"
-pypdf = "^3.3.0"
-tenacity = "^8.2.0"
-
+tiktoken
+streamlit_elements
+youtube-transcript-api = "^0.6.0"
 
 [tool.poetry.group.dev.dependencies]
 python-dotenv = "^0.21.1"
