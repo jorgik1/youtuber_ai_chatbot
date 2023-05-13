@@ -26,6 +26,9 @@ def index():
         with st.spinner('preparing answer'):
             chatbot = YouTubeChatbot()
             db = chatbot.create_db_from_youtube_video_url(video_url)
+            if db is None:
+                return st.subheader("There is no transcript")
+
             answer = chatbot.get_response_from_query(db, question)
             st.subheader("Answer:")
             st.write(textwrap.fill(answer, width=50))

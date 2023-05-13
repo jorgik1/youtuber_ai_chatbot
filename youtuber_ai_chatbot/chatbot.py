@@ -1,4 +1,4 @@
-from langchain.document_loaders import YoutubeLoader
+from components.youtube import CustomYoutubeLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.vectorstores import FAISS
@@ -7,8 +7,10 @@ from langchain.chains import LLMChain
 from dotenv import find_dotenv, load_dotenv
 from prompts import CHAT_PROMPT
 from openai.error import OpenAIError
+from youtube_transcript_api import NoTranscriptFound
 import streamlit as st
 import os
+
 
 if (st.secrets.openai_api_key is not None):
     os.environ.setdefault("OPENAI_API_KEY", st.secrets.openai_api_key),
@@ -21,8 +23,11 @@ class YouTubeChatbot:
 
     @st.cache_data
     def create_db_from_youtube_video_url(_self, video_url):
-        loader = YoutubeLoader.from_youtube_url(video_url)
-        transcript = loader.load()
+        loader = CustomYoutubeLoader.from_youtube_url(video_url)
+        try:
+            transcript = loader.load()
+        except NoTranscriptFound:
+            raise ValueError("No transcript found for the video.")
 
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
         docs = text_splitter.split_documents(transcript)
