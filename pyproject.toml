@@ -5,6 +5,8 @@ description = "Accurate answers for YouTube videos"
 authors = ["jorgik1"]
 license = "MIT"
 packages = [{include = "youtuber_ai_chatbot"}]
+# other fields...
+readme = "README.rst"
 
 [tool.poetry.dependencies]
 python = "^3.10"
