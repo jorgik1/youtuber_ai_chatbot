@@ -9,7 +9,7 @@ packages = [{include = "youtuber_ai_chatbot"}]
 readme = "README.rst"
 
 [tool.poetry.dependencies]
-python = "^3.10"
+python = "^3.9"
 streamlit = "^1.17.0"
 langchain = "0.0.79"
 faiss-cpu = "^1.7.3"
