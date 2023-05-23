@@ -6,8 +6,6 @@ from langchain import LLMChain, OpenAI
 from dotenv import find_dotenv, load_dotenv
 from prompts import CHAT_PROMPT
 from youtube_transcript_api import NoTranscriptFound
-
-from langchain import LLMChain, OpenAI
 import streamlit as st
 import os
 
