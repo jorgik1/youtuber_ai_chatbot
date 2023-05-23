@@ -2,12 +2,12 @@ from langchain.document_loaders import YoutubeLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.vectorstores import FAISS
-from langchain.chat_models import ChatOpenAI
-from langchain.chains import LLMChain
+from langchain import LLMChain, OpenAI
 from dotenv import find_dotenv, load_dotenv
 from prompts import CHAT_PROMPT
-from openai.error import OpenAIError
 from youtube_transcript_api import NoTranscriptFound
+
+from langchain import LLMChain, OpenAI
 import streamlit as st
 import os
 
@@ -23,6 +23,15 @@ class YouTubeChatbot:
 
     @st.cache_data
     def create_db_from_youtube_video_url(_self, video_url):
+        """
+        A function that creates a database from a YouTube video URL. It takes in a video URL and uses a YoutubeLoader
+        to load the transcript of the video. If there is no transcript, it raises a ValueError. It then splits the
+        transcript into smaller chunks of 1000 characters with an overlap of 100, and uses FAISS to create a database
+        of these chunks using the embeddings provided. Returns the created database.
+        :param _self: The instance of the class calling the function.
+        :param video_url: The URL of the YouTube video to create the database from.
+        :return: The created database.
+        """
         loader = YoutubeLoader.from_youtube_url(video_url)
         try:
             transcript = loader.load()
@@ -38,16 +47,23 @@ class YouTubeChatbot:
     @st.cache_data
     def get_response_from_query(_self, _db, query, k=4):
         """
-        gpt-3.5-turbo can handle up to 4097 tokens. Setting the chunksize to 1000 and k to 4 maximizes
-        the number of tokens to analyze.
+        A function that returns a response from a query via a similarity search and
+        OpenAI's text-davinci-003 model.
+
+        :param _self: an instance of the class calling the function
+        :param _db: a database object to perform similarity search
+        :param query: a string query to search for
+        :param k: an integer number of documents to return from similarity search (default=4)
+
+        :return: a string response from OpenAI's text-davinci-003 model or None if an error occurs
         """
         docs = _db.similarity_search(query, k=k)
         docs_page_content = " ".join([d.page_content for d in docs])
         try:
-            chat = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0.2)
+            chat = OpenAI(model_name="text-davinci-003", temperature=0.2)
             chain = LLMChain(llm=chat, prompt=CHAT_PROMPT)
             response = chain.run(question=query, docs=docs_page_content)
             response = response.replace("\n", "")
             return response
         except:
-            OpenAIError()
+            return None
