@@ -1,4 +1,4 @@
-from components.youtube import CustomYoutubeLoader
+from langchain.document_loaders import YoutubeLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.vectorstores import FAISS
@@ -23,7 +23,7 @@ class YouTubeChatbot:
 
     @st.cache_data
     def create_db_from_youtube_video_url(_self, video_url):
-        loader = CustomYoutubeLoader.from_youtube_url(video_url)
+        loader = YoutubeLoader.from_youtube_url(video_url)
         try:
             transcript = loader.load()
         except NoTranscriptFound:
@@ -51,7 +51,3 @@ class YouTubeChatbot:
             return response
         except:
             OpenAIError()
-
-
-
-
