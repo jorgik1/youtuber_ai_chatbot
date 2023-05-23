@@ -1,3 +1,6 @@
+# Temporary fix for pydantic issue @see https://github.com/streamlit/streamlit/issues/3218
+import pydantic
+pydantic.class_validators._FUNCS.clear()
 import streamlit as st
 from streamlit_elements import elements, media
 from chatbot import YouTubeChatbot
