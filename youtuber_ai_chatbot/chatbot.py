@@ -3,6 +3,7 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.vectorstores import FAISS
 from langchain import LLMChain, OpenAI
+from langchain import HuggingFaceHub
 from dotenv import find_dotenv, load_dotenv
 from prompts import CHAT_PROMPT
 from youtube_transcript_api import NoTranscriptFound
@@ -12,12 +13,22 @@ import os
 
 if (st.secrets.openai_api_key is not None):
     os.environ.setdefault("OPENAI_API_KEY", st.secrets.openai_api_key),
+if (st.secrets.hugging_face_api_key is not None):
+    os.environ.setdefault("HUGGINGFACEHUB_API_TOKEN", st.secrets.hugging_face_api_key)
 
 
 class YouTubeChatbot:
     def __init__(self):
         load_dotenv(find_dotenv())
         self.embeddings = OpenAIEmbeddings(openai_api_key=os.environ["OPENAI_API_KEY"])
+        repo_id = "tiiuae/falcon-7b-instruct"
+        self.falcon_llm = HuggingFaceHub(
+            repo_id=repo_id,
+            model_kwargs={
+                "temperature": 0.1,
+                "max_new_tokens": 500
+            })
+
 
     @st.cache_data
     def create_db_from_youtube_video_url(_self, video_url):
@@ -46,21 +57,21 @@ class YouTubeChatbot:
     def get_response_from_query(_self, _db, query, k=4):
         """
         A function that returns a response from a query via a similarity search and
-        OpenAI's text-davinci-003 model.
+        Falcon's LLM.
 
         :param _self: an instance of the class calling the function
         :param _db: a database object to perform similarity search
         :param query: a string query to search for
         :param k: an integer number of documents to return from similarity search (default=4)
 
-        :return: a string response from OpenAI's text-davinci-003 model or None if an error occurs
+        :return: a string response from Falcon 7b instruct model or None if an error occurs
         """
         docs = _db.similarity_search(query, k=k)
         docs_page_content = " ".join([d.page_content for d in docs])
         try:
-            chat = OpenAI(model_name="text-davinci-003", temperature=0.2)
-            chain = LLMChain(llm=chat, prompt=CHAT_PROMPT)
+            chain = LLMChain(llm=_self.falcon_llm, prompt=CHAT_PROMPT)
             response = chain.run(question=query, docs=docs_page_content)
+            print(response)
             response = response.replace("\n", "")
             return response
         except:
