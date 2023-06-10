@@ -71,7 +71,6 @@ class YouTubeChatbot:
         try:
             chain = LLMChain(llm=_self.falcon_llm, prompt=CHAT_PROMPT)
             response = chain.run(question=query, docs=docs_page_content)
-            print(response)
             response = response.replace("\n", "")
             return response
         except:
