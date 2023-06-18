@@ -1,9 +1,9 @@
 from langchain.document_loaders import YoutubeLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.vectorstores import FAISS
-from langchain import LLMChain, OpenAI
-from langchain import HuggingFaceHub
+from langchain.embeddings import HuggingFaceEmbeddings
+from langchain.llms import HuggingFaceHub
+from langchain.chains import LLMChain
 from dotenv import find_dotenv, load_dotenv
 from prompts import CHAT_PROMPT
 from youtube_transcript_api import NoTranscriptFound
@@ -11,67 +11,82 @@ import streamlit as st
 import os
 
 
-if (st.secrets.openai_api_key is not None):
-    os.environ.setdefault("OPENAI_API_KEY", st.secrets.openai_api_key),
-if (st.secrets.hugging_face_api_key is not None):
-    os.environ.setdefault("HUGGINGFACEHUB_API_TOKEN", st.secrets.hugging_face_api_key)
-
-
 class YouTubeChatbot:
+
     def __init__(self):
         load_dotenv(find_dotenv())
-        self.embeddings = OpenAIEmbeddings(openai_api_key=os.environ["OPENAI_API_KEY"])
-        repo_id = "tiiuae/falcon-7b-instruct"
-        self.falcon_llm = HuggingFaceHub(
-            repo_id=repo_id,
-            model_kwargs={
-                "temperature": 0.1,
-                "max_new_tokens": 500
-            })
+
+        if (st.secrets.hugging_face_api_key is not None):
+            os.environ.setdefault("HUGGINGFACEHUB_API_TOKEN",
+                                  st.secrets.hugging_face_api_key)
+
+        try:
+            self.embeddings = HuggingFaceEmbeddings()
+        except Exception as e:
+            st.error("Failed to load the Hugging Face Embeddings model: " +
+                     str(e))
+            self.embeddings = None
+
+        try:
+            repo_id = "tiiuae/falcon-7b-instruct"
+            self.falcon_llm = HuggingFaceHub(
+                repo_id=repo_id, model_kwargs={"temperature": 0.1, "max_new_tokens": 500}
+            )
+
+        except Exception as e:
+            st.error("Failed to load the Falcon LLM model: " + str(e))
+            self.falcon_llm = None
 
 
     @st.cache_data
     def create_db_from_youtube_video_url(_self, video_url):
-        """
-        A function that creates a database from a YouTube video URL. It takes in a video URL and uses a YoutubeLoader
-        to load the transcript of the video. If there is no transcript, it raises a ValueError. It then splits the
-        transcript into smaller chunks of 1000 characters with an overlap of 100, and uses FAISS to create a database
-        of these chunks using the embeddings provided. Returns the created database.
-        :param _self: The instance of the class calling the function.
-        :param video_url: The URL of the YouTube video to create the database from.
-        :return: The created database.
-        """
+        st.info("Creating FAISS database from YouTube video.")
         loader = YoutubeLoader.from_youtube_url(video_url)
         try:
             transcript = loader.load()
         except NoTranscriptFound:
-            raise ValueError("No transcript found for the video.")
+            st.error("No transcript found for the video.")
+            return None
 
-        text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
+        text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000,
+                                                       chunk_overlap=100)
         docs = text_splitter.split_documents(transcript)
+        st.info("Number of documents: " + str(len(docs)))
 
-        db = FAISS.from_documents(docs, _self.embeddings)
-        return db
+        try:
+            db = FAISS.from_documents(docs, _self.embeddings)
+            st.text("Created FAISS database from documents.")
+            return db
+        except Exception as e:
+            st.error("Failed to create FAISS database from documents: " +
+                     str(e))
+            return None
 
     @st.cache_data
     def get_response_from_query(_self, _db, query, k=4):
-        """
-        A function that returns a response from a query via a similarity search and
-        Falcon's LLM.
+        if _db is None:
+            st.error(
+                "Database is not initialized. Please check the error messages."
+            )
+            return None
 
-        :param _self: an instance of the class calling the function
-        :param _db: a database object to perform similarity search
-        :param query: a string query to search for
-        :param k: an integer number of documents to return from similarity search (default=4)
+        if _self.falcon_llm is None:
+            st.error(
+                "Falcon LLM model is not loaded. Please check the error messages."
+            )
+            return None
 
-        :return: a string response from Falcon 7b instruct model or None if an error occurs
-        """
         docs = _db.similarity_search(query, k=k)
         docs_page_content = " ".join([d.page_content for d in docs])
+
         try:
             chain = LLMChain(llm=_self.falcon_llm, prompt=CHAT_PROMPT)
-            response = chain.run(question=query, docs=docs_page_content)
+            response = chain.run(
+                question=query,
+                docs=docs_page_content
+            )
             response = response.replace("\n", "")
             return response
-        except:
+        except Exception as e:
+            st.error("Failed to generate a response: " + str(e))
             return None
