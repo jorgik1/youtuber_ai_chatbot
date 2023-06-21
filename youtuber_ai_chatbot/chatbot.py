@@ -28,13 +28,13 @@ class YouTubeChatbot:
             self.embeddings = None
 
         try:
-            repo_id = "tiiuae/falcon-7b-instruct"
+            repo_id = "google/flan-t5-xxl"
             self.falcon_llm = HuggingFaceHub(
                 repo_id=repo_id, model_kwargs={"temperature": 0.1, "max_new_tokens": 500}
             )
 
         except Exception as e:
-            st.error("Failed to load the Falcon LLM model: " + str(e))
+            st.error("Failed to load the LLM model: " + str(e))
             self.falcon_llm = None
 
 
@@ -72,7 +72,7 @@ class YouTubeChatbot:
 
         if _self.falcon_llm is None:
             st.error(
-                "Falcon LLM model is not loaded. Please check the error messages."
+                "LLM model is not loaded. Please check the error messages."
             )
             return None
 
@@ -83,7 +83,9 @@ class YouTubeChatbot:
             chain = LLMChain(llm=_self.falcon_llm, prompt=CHAT_PROMPT)
             response = chain.run(
                 question=query,
-                docs=docs_page_content
+                docs=docs_page_content,
+                verbose=True,
+                memory=st.session_state.buffer_memory,
             )
             response = response.replace("\n", "")
             return response
