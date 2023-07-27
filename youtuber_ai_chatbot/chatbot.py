@@ -21,7 +21,8 @@ class YouTubeChatbot:
                                   st.secrets.hugging_face_api_key)
 
         try:
-            self.embeddings = HuggingFaceEmbeddings()
+            self.embeddings = HuggingFaceEmbeddings(
+                model_name='all-MiniLM-L6-v2')
         except Exception as e:
             st.error("Failed to load the Hugging Face Embeddings model: " +
                      str(e))
@@ -29,13 +30,13 @@ class YouTubeChatbot:
 
         try:
             repo_id = "google/flan-t5-xxl"
-            self.falcon_llm = HuggingFaceHub(
+            self.model = HuggingFaceHub(
                 repo_id=repo_id, model_kwargs={"temperature": 0.1, "max_new_tokens": 500}
             )
 
         except Exception as e:
             st.error("Failed to load the LLM model: " + str(e))
-            self.falcon_llm = None
+            self.model = None
 
 
     @st.cache_data
@@ -70,7 +71,7 @@ class YouTubeChatbot:
             )
             return None
 
-        if _self.falcon_llm is None:
+        if _self.model is None:
             st.error(
                 "LLM model is not loaded. Please check the error messages."
             )
@@ -80,7 +81,7 @@ class YouTubeChatbot:
         docs_page_content = " ".join([d.page_content for d in docs])
 
         try:
-            chain = LLMChain(llm=_self.falcon_llm, prompt=CHAT_PROMPT)
+            chain = LLMChain(llm=_self.model, prompt=CHAT_PROMPT)
             response = chain.run(
                 question=query,
                 docs=docs_page_content,
