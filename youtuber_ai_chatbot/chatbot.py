@@ -2,7 +2,7 @@ from langchain.document_loaders import YoutubeLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.vectorstores import FAISS
 from langchain.embeddings import HuggingFaceEmbeddings
-from langchain.llms import HuggingFaceHub
+from langchain.llms import OpenAIChat
 from langchain.chains import LLMChain
 from dotenv import find_dotenv, load_dotenv
 from prompts import CHAT_PROMPT
@@ -19,6 +19,8 @@ class YouTubeChatbot:
         if (st.secrets.hugging_face_api_key is not None):
             os.environ.setdefault("HUGGINGFACEHUB_API_TOKEN",
                                   st.secrets.hugging_face_api_key)
+        if (st.secrets.open_ai_key is not None):
+            os.environ.setdefault("OPENAI_API_KEY", st.secrets.open_ai_key)
 
         try:
             self.embeddings = HuggingFaceEmbeddings(
@@ -29,10 +31,8 @@ class YouTubeChatbot:
             self.embeddings = None
 
         try:
-            repo_id = "google/flan-t5-xxl"
-            self.model = HuggingFaceHub(
-                repo_id=repo_id, model_kwargs={"temperature": 0.1, "max_new_tokens": 500}
-            )
+
+            self.model = OpenAIChat()
 
         except Exception as e:
             st.error("Failed to load the LLM model: " + str(e))
