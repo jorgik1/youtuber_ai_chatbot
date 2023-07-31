@@ -1,7 +1,7 @@
 streamlit==1.22.0
 langchain==0.0.177
 faiss-cpu==1.7.3
-openai==0.26.2
+openai==0.27.0
 tiktoken==0.4.0
 streamlit_elements==0.1
 youtube-transcript-api==0.6.0
