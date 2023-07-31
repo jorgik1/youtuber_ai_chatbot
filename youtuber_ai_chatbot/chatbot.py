@@ -1,15 +1,16 @@
+import streamlit as st
+import os
 from langchain.document_loaders import YoutubeLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.vectorstores import FAISS
 from langchain.embeddings import HuggingFaceEmbeddings
-from langchain.llms import OpenAIChat
+from langchain.chat_models import ChatOpenAI
 from langchain.chains import LLMChain
 from dotenv import find_dotenv, load_dotenv
 from prompts import CHAT_PROMPT
 from youtube_transcript_api import NoTranscriptFound
-import streamlit as st
-import os
 
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 class YouTubeChatbot:
 
@@ -32,7 +33,7 @@ class YouTubeChatbot:
 
         try:
 
-            self.model = OpenAIChat()
+            self.model = ChatOpenAI()
 
         except Exception as e:
             st.error("Failed to load the LLM model: " + str(e))
