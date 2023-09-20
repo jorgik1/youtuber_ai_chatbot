@@ -11,6 +11,10 @@ cd youtuber_ai_chatbot
 ```
 pip install -r requirements.txt
 ```
+## API keys
+Make sure you have .env file with API keys:
+HUGGINGFACEHUB_API_TOKEN=
+OPENAI_API_KEY=
 
 ## Run the Chatbot
 ```
